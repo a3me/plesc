@@ -26,17 +26,21 @@ struct ChatView: View {
     var body: some View {
         NavigationStack {
             VStack {
-                
+
                 ScrollViewReader { proxy in
                     ScrollView {
                         VStack(spacing: 4) {
-                            ForEach(messages) { message in
-                                MessageView(
-                                    message: message.text,
-                                    isCurrentUser: message.isCurrentUser,
-                                    isFirst: message.isFirst
-                                )
-                                .id(message.id)  // Assign ID for scrolling
+                            if messages.isEmpty {
+                                Spacer()  // Keeps ScrollView tappable when empty
+                            } else {
+                                ForEach(messages) { message in
+                                    MessageView(
+                                        message: message.text,
+                                        isCurrentUser: message.isCurrentUser,
+                                        isFirst: message.isFirst
+                                    )
+                                    .id(message.id)  // Assign ID for scrolling
+                                }
                             }
                         }
                         .padding(.top, 8)
@@ -49,13 +53,15 @@ struct ChatView: View {
                             }
                         }
                     }
+                    .onTapGesture {
+                        dismissKeyboard()
+                    }
                 }
 
                 // Input Field & Send Button
                 HStack {
                     TextField("Pleść", text: $newMessage)
                         .textFieldStyle(.roundedBorder)
-                        .padding(8)
 
                     Button(action: sendMessage) {
                         Image(systemName: "arrow.up")
@@ -66,13 +72,18 @@ struct ChatView: View {
                     }
                     .disabled(
                         newMessage.trimmingCharacters(in: .whitespaces).isEmpty)  // Disable when empty
-                }
-                .padding(.horizontal)
+                }.padding(.bottom)
 
             }
             .padding(.horizontal)
             .navigationTitle("Chat with Maciej")
         }
+    }
+
+    private func dismissKeyboard() {
+        UIApplication.shared.sendAction(
+            #selector(UIResponder.resignFirstResponder), to: nil, from: nil,
+            for: nil)
     }
 
     /// Function to send a new message
@@ -81,14 +92,15 @@ struct ChatView: View {
             in: .whitespacesAndNewlines)
         guard !trimmedMessage.isEmpty else { return }
 
-        let isFirstMessage = messages.last?.isCurrentUser == false  // First if last message was from the other user
+        let isFirstMessage =
+            messages.isEmpty ? true : messages.last?.isCurrentUser == false  // First if last message was from the other user
 
         messages.append(
             Message(
                 text: trimmedMessage, isCurrentUser: true,
                 isFirst: isFirstMessage))
         newMessage = ""  // Clear input field
-        
+
         fetchBotResponse(for: trimmedMessage)
     }
 
@@ -119,12 +131,17 @@ struct ChatView: View {
             }
 
             do {
-                let decodedResponse = try JSONDecoder().decode(BotResponse.self, from: data)
-                let cleanedResponse = decodedResponse.response.trimmingCharacters(in: .whitespacesAndNewlines)
-                
+                let decodedResponse = try JSONDecoder().decode(
+                    BotResponse.self, from: data)
+                let cleanedResponse = decodedResponse.response
+                    .trimmingCharacters(in: .whitespacesAndNewlines)
+
                 DispatchQueue.main.async {
                     let isFirstBotMessage = messages.last?.isCurrentUser == true
-                    messages.append(Message(text: cleanedResponse, isCurrentUser: false, isFirst: isFirstBotMessage))
+                    messages.append(
+                        Message(
+                            text: cleanedResponse, isCurrentUser: false,
+                            isFirst: isFirstBotMessage))
                 }
             } catch {
                 print("Failed to decode response:", error)
@@ -134,5 +151,10 @@ struct ChatView: View {
 }
 
 #Preview {
-    ChatView()
+    TabView {
+        ChatView().tabItem {
+            Label("Chat", systemImage: "bubble.left.and.bubble.right")
+        }
+
+    }
 }

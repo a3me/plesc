@@ -3,7 +3,7 @@ import GoogleSignInSwift
 import SwiftUI
 
 struct ContentView: View {
-    @StateObject private var viewModel = GoogleSignInViewModel()
+    @ObservedObject var viewModel: GoogleSignInViewModel
     @State private var showSplash = true
 
     var body: some View {
@@ -22,8 +22,4 @@ struct ContentView: View {
             }
         }
     }
-}
-
-#Preview {
-    ContentView()
 }

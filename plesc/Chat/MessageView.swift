@@ -5,16 +5,19 @@
 //  Created by Matt Ball on 29/03/2025.
 //
 import SwiftUI
+import Translation
 
 struct MessageView: View {
     var message: String
     var isCurrentUser: Bool
     var isFirst: Bool
 
+    @State private var showTranslation: Bool = false
+
     var body: some View {
         HStack {
             if isCurrentUser { Spacer() }  // Push user messages to the right
-            
+
             Text(message)
                 .foregroundColor(isCurrentUser ? .white : .primary)
                 .padding(.horizontal)
@@ -26,6 +29,7 @@ struct MessageView: View {
                 )
                 .background(
                     alignment: isCurrentUser ? .bottomTrailing : .bottomLeading
+
                 ) {
                     isFirst
                         ? Image(isCurrentUser ? "outgoingTail" : "incomingTail")
@@ -35,12 +39,24 @@ struct MessageView: View {
                                     ? .blue
                                     : Color(uiColor: .secondarySystemBackground)
                             )
+                            .offset(x: isCurrentUser ? -3 : 3, y: 0)
                         : nil
                 }
-            
-            if !isCurrentUser { Spacer() } // Push bot messages to left
-            
-        }
+                .contextMenu {
+                    Button(action: {
+                        UIPasteboard.general.string = message
+                    }) {
+                        Label("Copy", systemImage: "doc.on.doc")
+                    }
+                    Button(action: {
+                        showTranslation = true
+                    }) {
+                        Label("Translate", systemImage: "globe")
+                    }
+                }
+
+            if !isCurrentUser { Spacer() }  // Push bot messages to left
+        }.translationPresentation(isPresented: $showTranslation, text: message)
     }
 }
 

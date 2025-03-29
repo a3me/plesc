@@ -13,29 +13,27 @@ struct SettingsView: View {
 
     var body: some View {
         NavigationStack {
-            VStack {
+            Form {
                 if let user = viewModel.user {
-                    VStack {
-                        Text("Welcome, \(user.profile?.name ?? "User")")
+                    HStack {
+                        Text("Czesć \(user.profile?.name ?? "User")!")
+
+                        Spacer()
+
                         if let imageUrl = user.profile?.imageURL(
-                            withDimension: 100)
+                            withDimension: 40)
                         {
                             AsyncImage(url: imageUrl) { image in
                                 image.resizable().scaledToFit()
                             } placeholder: {
                                 ProgressView()
                             }
-                            .frame(width: 100, height: 100)
+                            .frame(width: 40, height: 40)
                             .clipShape(Circle())
                         }
-                        Button("Sign Out") {
-                            viewModel.signOut()
-                        }
-                        .padding()
                     }
                 }
-            }
-            Form {
+
                 Toggle("Enable Notifications", isOn: $notificationsEnabled)
 
                 Picker("App Language", selection: $selectedLanguage) {
@@ -43,6 +41,10 @@ struct SettingsView: View {
                     Text("English").tag("English")
                 }
                 .pickerStyle(.segmented)
+
+                Button(action: { viewModel.signOut() }) {
+                    Text("Sign Out").frame(maxWidth: .infinity)
+                }.buttonStyle(.borderedProminent).padding(.bottom, 2)
             }
             .navigationTitle("Settings")
         }
