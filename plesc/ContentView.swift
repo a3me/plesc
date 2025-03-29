@@ -1,21 +1,26 @@
-//
-//  ContentView.swift
-//  plesc
-//
-//  Created by Matt Ball on 27/03/2025.
-//
-
+import GoogleSignIn
+import GoogleSignInSwift
 import SwiftUI
 
 struct ContentView: View {
+    @StateObject private var viewModel = GoogleSignInViewModel()
+    @State private var showSplash = true
+
     var body: some View {
-        VStack {
-            Image(systemName: "globe")
-                .imageScale(.large)
-                .foregroundStyle(.tint)
-            Text("Hello, world!")
+        if showSplash {
+            SplashView()
+                .onAppear {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                        showSplash = false
+                    }
+                }
+        } else {
+            if viewModel.user == nil {
+                LoginView(viewModel: viewModel)
+            } else {
+                MainTabView(viewModel: viewModel)
+            }
         }
-        .padding()
     }
 }
 
