@@ -1,3 +1,4 @@
+import AVFoundation
 //
 //  MessageView.swift
 //  plesc
@@ -53,10 +54,30 @@ struct MessageView: View {
                     }) {
                         Label("Translate", systemImage: "globe")
                     }
+                    Button(action: {
+                        readMessageAloud(text: message)
+                    }) {
+                        Label("Read Aloud", systemImage: "speaker.wave.2")
+                    }
                 }
 
             if !isCurrentUser { Spacer() }  // Push bot messages to left
-        }.translationPresentation(isPresented: $showTranslation, text: message)
+        }
+        .translationPresentation(isPresented: $showTranslation, text: message)
+    }
+
+    private func readMessageAloud(text: String) {
+        let audioSession = AVAudioSession.sharedInstance()
+        do {
+            try audioSession.setCategory(
+                .playback, mode: .voicePrompt)
+            let synthesizer = AVSpeechSynthesizer()
+            let utterance = AVSpeechUtterance(string: text)
+            utterance.voice = AVSpeechSynthesisVoice(language: "pl-PL")
+            synthesizer.speak(utterance)
+        } catch {
+            print("Failed to set the audio session configuration")
+        }
     }
 }
 

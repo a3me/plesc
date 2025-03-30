@@ -13,8 +13,16 @@ struct Message: Identifiable {
     let isFirst: Bool
 }
 
-/// Model for API response
-struct BotResponse: Codable {
+struct HistoryResponse: Codable {
+    struct Part: Codable {
+        let text: String?
+    }
+
+    let parts: [Part]
+    let role: String
+}
+
+struct SendMessageResponse: Codable {
     let response: String
 }
 
@@ -29,7 +37,7 @@ struct ChatView: View {
 
                 ScrollViewReader { proxy in
                     ScrollView {
-                        VStack(spacing: 4) {
+                        VStack(spacing: 8) {
                             if messages.isEmpty {
                                 Spacer()  // Keeps ScrollView tappable when empty
                             } else {
@@ -76,7 +84,20 @@ struct ChatView: View {
 
             }
             .padding(.horizontal)
-            .navigationTitle("Chat with Maciej")
+            .navigationTitle("Chat with Pleść")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button(action: {
+                        resetChatHistory()
+                    }) {
+                        Image(systemName: "arrow.clockwise")
+                            .foregroundColor(.blue)
+                    }
+                }
+            }
+        }.onAppear {
+            fetchChatHistory()
         }
     }
 
@@ -101,11 +122,11 @@ struct ChatView: View {
                 isFirst: isFirstMessage))
         newMessage = ""  // Clear input field
 
-        fetchBotResponse(for: trimmedMessage)
+        sendMessage(for: trimmedMessage)
     }
 
     /// Function to fetch bot response from API
-    private func fetchBotResponse(for message: String) {
+    private func sendMessage(for message: String) {
         guard
             let encodedMessage = message.addingPercentEncoding(
                 withAllowedCharacters: .urlQueryAllowed),
@@ -132,7 +153,7 @@ struct ChatView: View {
 
             do {
                 let decodedResponse = try JSONDecoder().decode(
-                    BotResponse.self, from: data)
+                    SendMessageResponse.self, from: data)
                 let cleanedResponse = decodedResponse.response
                     .trimmingCharacters(in: .whitespacesAndNewlines)
 
@@ -148,6 +169,59 @@ struct ChatView: View {
             }
         }.resume()
     }
+    
+    private func resetChatHistory() {
+        guard let url = URL(string: "https://plesc.a3p.re/chat/google/history/reset") else {
+            print("Invalid URL")
+            return
+        }
+        
+        URLSession.shared.dataTask(with: url) { data, response, error in
+            guard error == nil else {
+                print("Error resetting chat history:", error?.localizedDescription ?? "Unknown error")
+                return
+            }
+            messages.removeAll(keepingCapacity: true)
+        }.resume()
+    }
+    
+    private func fetchChatHistory() {
+        guard let url = URL(string: "https://plesc.a3p.re/chat/google/history") else {
+            print("Invalid URL")
+            return
+        }
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "GET"
+        request.addValue("application/json", forHTTPHeaderField: "Accept")
+
+        URLSession.shared.dataTask(with: request) { data, response, error in
+            guard let data = data, error == nil else {
+                print("Error fetching chat history:", error?.localizedDescription ?? "Unknown error")
+                return
+            }
+
+            do {
+                let apiMessages = try JSONDecoder().decode([HistoryResponse].self, from: data)
+                
+                DispatchQueue.main.async {
+                    messages = apiMessages.compactMap { apiMessage in
+                        guard let messageText = apiMessage.parts.first?.text?.trimmingCharacters(in: .whitespacesAndNewlines) else {
+                            return nil
+                        }
+                        
+                        return Message(
+                            text: messageText,
+                            isCurrentUser: apiMessage.role == "user",
+                            isFirst: false // No need to track first messages in history
+                        )
+                    }
+                }
+            } catch {
+                print("Failed to decode chat history:", error)
+            }
+        }.resume()
+    }
 }
 
 #Preview {
@@ -155,6 +229,5 @@ struct ChatView: View {
         ChatView().tabItem {
             Label("Chat", systemImage: "bubble.left.and.bubble.right")
         }
-
     }
 }
