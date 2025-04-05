@@ -22,6 +22,7 @@ class GoogleSignInViewModel: ObservableObject {
                 print("Restore sign-in failed: \(error.localizedDescription)")
             } else {
                 self?.user = user
+                AppConfiguration.apiToken = user?.idToken?.tokenString ?? ""
                 self?.getJWT(
                     googleAccessToken: user?.idToken?.tokenString ?? "")
             }
@@ -43,6 +44,7 @@ class GoogleSignInViewModel: ObservableObject {
                 print("Sign-in failed: \(error.localizedDescription)")
             } else {
                 self?.user = signInResult?.user
+                AppConfiguration.apiToken = signInResult?.user.idToken?.tokenString ?? ""
                 self?.getJWT(
                     googleAccessToken: signInResult?.user.idToken?.tokenString
                         ?? "")

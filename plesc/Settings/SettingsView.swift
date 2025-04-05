@@ -9,6 +9,8 @@ import SwiftUI
 struct SettingsView: View {
     @State private var notificationsEnabled = true
     @State private var selectedLanguage = "Polish"
+    @State private var apiHost: String = "https://plesc.a3p.re"
+    
     @ObservedObject var viewModel: GoogleSignInViewModel
 
     var body: some View {
